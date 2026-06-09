@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: instagram-clone
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn instagram_clone.wsgi"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.console.EmailBackend"
