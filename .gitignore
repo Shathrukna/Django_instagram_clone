@@ -22,8 +22,11 @@ env/
 *~
 
 # Media
-media/
+media/*
 !media/.gitkeep
+!media/profile_pics/
+media/profile_pics/*
+!media/profile_pics/default.jpg
 
 # Static
 staticfiles/
