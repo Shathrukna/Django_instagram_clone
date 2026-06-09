@@ -10,6 +10,10 @@ services:
       - key: DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
-        value: ".onrender.com"
+        value: ".onrender.com,instagram-clone.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://instagram-clone.onrender.com"
       - key: EMAIL_BACKEND
         value: "django.core.mail.backends.console.EmailBackend"
+      - key: PORT
+        value: "10000"
