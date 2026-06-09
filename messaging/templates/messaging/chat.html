@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{{ other_user.username }} - Chat{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-white d-flex align-items-center gap-2">
+        <a href="{% url 'user-profile' other_user.username %}" class="text-decoration-none d-flex align-items-center gap-2 text-dark">
+          <img src="{{ other_user.profile.image.url }}" alt="{{ other_user.username }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+          <strong>{{ other_user.username }}</strong>
+        </a>
+        <a href="{% url 'inbox' %}" class="btn btn-sm btn-outline-secondary ms-auto">&larr;</a>
+      </div>
+      <div class="card-body" style="height: 400px; overflow-y: auto;" id="chat-messages">
+        {% for msg in messages %}
+        <div class="d-flex mb-3 {% if msg.sender == user %}justify-content-end{% endif %}">
+          <div class="{% if msg.sender == user %}bg-primary text-white{% else %}bg-light{% endif %} rounded-3 px-3 py-2" style="max-width: 70%;">
+            <p class="mb-0 small">{{ msg.text }}</p>
+            <small class="{% if msg.sender == user %}text-white-50{% else %}text-muted{% endif %}">{{ msg.created_at|date:"H:i" }}</small>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5 text-muted">
+          <p>No messages yet. Say hello!</p>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer bg-white">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="input-group">
+            {{ form.text }}
+            <button type="submit" class="btn btn-primary">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Scroll to bottom
+const chatBox = document.getElementById('chat-messages');
+if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+</script>
+{% endblock %}

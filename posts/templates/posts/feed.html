@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+{% load post_extras %}
+
+{% block title %}Instagram{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Main Feed -->
+  <div class="col-md-8">
+    {% if posts %}
+      {% for post in posts %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white d-flex align-items-center gap-2">
+          <a href="{% url 'user-profile' post.user.username %}" class="text-decoration-none d-flex align-items-center gap-2 text-dark">
+            <img src="{{ post.user.profile.image.url }}" alt="{{ post.user.username }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+            <strong>{{ post.user.username }}</strong>
+          </a>
+        </div>
+        <a href="{% url 'post-detail' post.id %}">
+          <img src="{{ post.image.url }}" alt="{{ post.caption }}" class="card-img-top" style="max-height: 600px; object-fit: contain; background: #000;">
+        </a>
+        <div class="card-body">
+          <div class="d-flex gap-3 mb-2">
+            <button class="btn btn-sm like-btn" data-post-id="{{ post.id }}" style="border: none; background: none; font-size: 1.5rem;">
+              <span class="like-icon">{% if post.id in liked_posts %}&#10084;&#65039;{% else %}&#9825;{% endif %}</span>
+            </button>
+            <a href="{% url 'post-detail' post.id %}" class="text-dark text-decoration-none" style="font-size: 1.5rem;">&#128172;</a>
+            <button class="btn btn-sm save-btn ms-auto" data-post-id="{{ post.id }}" style="border: none; background: none; font-size: 1.5rem;">
+              <span class="save-icon">&#128190;</span>
+            </button>
+          </div>
+          <p class="mb-1"><strong>{{ post.likes_count }}</strong> likes</p>
+          <p class="mb-1">
+            <a href="{% url 'user-profile' post.user.username %}" class="text-decoration-none text-dark"><strong>{{ post.user.username }}</strong></a>
+            {{ post.caption }}
+          </p>
+          {% if post.comments.exists %}
+          <a href="{% url 'post-detail' post.id %}" class="text-muted text-decoration-none small">
+            View all {{ post.comments_count }} comments
+          </a>
+          {% endif %}
+          <div class="mt-2">
+            {% for comment in post.comments.all|slice:":2" %}
+            <p class="mb-0 small">
+              <a href="{% url 'user-profile' comment.user.username %}" class="text-decoration-none text-dark"><strong>{{ comment.user.username }}</strong></a>
+              {{ comment.text }}
+            </p>
+            {% endfor %}
+          </div>
+          <small class="text-muted">{{ post.created_at|time_ago }}</small>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Pagination -->
+      {% if posts.has_next %}
+      <div class="text-center mb-4">
+        <a href="?page={{ posts.next_page_number }}" class="btn btn-outline-primary">Load More</a>
+      </div>
+      {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+      <h5>No posts yet</h5>
+      <p class="text-muted">Follow users to see their posts here.</p>
+      <a href="{% url 'explore' %}" class="btn btn-primary">Explore</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-md-4 d-none d-md-block">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <a href="{% url 'profile' %}">
+            <img src="{{ user.profile.image.url }}" alt="{{ user.username }}" class="rounded-circle" style="width: 44px; height: 44px; object-fit: cover;">
+          </a>
+          <div>
+            <a href="{% url 'profile' %}" class="text-decoration-none text-dark"><strong>{{ user.username }}</strong></a>
+          </div>
+        </div>
+        {% if suggested_users %}
+        <h6 class="text-muted">Suggestions For You</h6>
+        {% for su in suggested_users %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <img src="{{ su.profile.image.url }}" alt="{{ su.username }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+          <div class="flex-grow-1">
+            <a href="{% url 'user-profile' su.username %}" class="text-decoration-none text-dark small"><strong>{{ su.username }}</strong></a>
+          </div>
+          <a href="{% url 'follow-user' su.username %}" class="btn btn-primary btn-sm">Follow</a>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.like-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const postId = this.dataset.postId;
+    const icon = this.querySelector('.like-icon');
+    fetch(`/posts/${postId}/like/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+      .then(r => r.json())
+      .then(data => {
+        icon.innerHTML = data.liked ? '&#10084;&#65039;' : '&#9825;';
+      });
+  });
+});
+
+document.querySelectorAll('.save-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const postId = this.dataset.postId;
+    fetch(`/posts/${postId}/save/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+      .then(r => r.json())
+      .then(data => {
+        this.querySelector('.save-icon').style.opacity = data.saved ? '1' : '0.5';
+      });
+  });
+});
+</script>
+{% endblock %}
