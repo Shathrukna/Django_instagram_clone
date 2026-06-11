@@ -4,4 +4,5 @@ from . import views
 urlpatterns = [
     path("", views.stories_view, name="stories"),
     path("create/", views.create_story, name="create-story"),
+    path("api/<str:username>/", views.story_viewer_data, name="story-viewer-data"),
 ]

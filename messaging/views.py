@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages as django_messages
 from django.db.models import Q
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
 from .models import Conversation, Message
 from .forms import MessageForm
 
@@ -10,7 +13,6 @@ from .forms import MessageForm
 @login_required
 def inbox(request):
     conversations = Conversation.objects.filter(participants=request.user)
-    # Annotate each conversation with other_user and unread_count
     conv_data = []
     for conv in conversations:
         other_user = conv.participants.exclude(pk=request.user.pk).first()
@@ -34,7 +36,6 @@ def conversation_detail(request, pk):
     )
     messages_list = Message.objects.filter(conversation=conversation)
 
-    # Mark messages as read
     messages_list.filter(is_read=False).exclude(sender=request.user).update(
         is_read=True
     )
@@ -91,7 +92,6 @@ def start_conversation(request, username):
         django_messages.error(request, "You cannot message yourself.")
         return redirect("profile")
 
-    # Find existing conversation
     conversation = Conversation.objects.filter(
         participants=request.user
     ).filter(participants=other_user).first()
@@ -101,3 +101,15 @@ def start_conversation(request, username):
         conversation.participants.add(request.user, other_user)
 
     return redirect("conversation-detail", pk=conversation.pk)
+
+
+@login_required
+def check_online_status(request):
+    usernames = request.GET.getlist("users[]")
+    if not usernames:
+        return JsonResponse({})
+    threshold = timezone.now() - timedelta(minutes=5)
+    online_users = User.objects.filter(
+        username__in=usernames, profile__last_seen__gte=threshold
+    ).values_list("username", flat=True)
+    return JsonResponse({u: u in online_users for u in usernames})

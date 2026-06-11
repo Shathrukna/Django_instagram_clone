@@ -13,7 +13,10 @@
     <div class="msg-conversations">
       {% for item in conv_data %}
       <a href="{% url 'conversation-detail' item.conversation.id %}" class="msg-conv-item text-decoration-none {% if item.conversation.id == conversation.id %}active{% endif %}">
-        <img src="{{ item.other_user.profile.image.url }}" alt="{{ item.other_user.username }}">
+        <div style="position:relative;flex-shrink:0;">
+          <img src="{{ item.other_user.profile.image.url }}" alt="{{ item.other_user.username }}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+          <span class="online-dot" data-username="{{ item.other_user.username }}" style="display:none;"></span>
+        </div>
         <div class="mci-info">
           <span class="mci-username">{{ item.other_user.username }}</span>
           {% if item.last_message %}
@@ -38,9 +41,12 @@
   <div class="msg-main">
     <div class="msg-main-header">
       <button class="mmh-back" onclick="window.location.href='{% url 'inbox' %}'"><i class="bi bi-arrow-left"></i></button>
-      <a href="{% url 'user-profile' other_user.username %}">
-        <img src="{{ other_user.profile.image.url }}" alt="{{ other_user.username }}">
-      </a>
+      <div style="position:relative;flex-shrink:0;">
+        <a href="{% url 'user-profile' other_user.username %}">
+          <img src="{{ other_user.profile.image.url }}" alt="{{ other_user.username }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        </a>
+        <span class="online-dot" id="headerOnlineDot" data-username="{{ other_user.username }}"></span>
+      </div>
       <a href="{% url 'user-profile' other_user.username %}" class="mmh-username text-decoration-none">{{ other_user.username }}</a>
     </div>
 
@@ -196,5 +202,27 @@ function cancelVoiceRecording() {
     audioChunks = [];
   }
 }
+
+// Online status polling
+function checkOnlineStatus() {
+  var dots = document.querySelectorAll('.online-dot');
+  var usernames = [];
+  dots.forEach(function(d) {
+    var u = d.dataset.username;
+    if (u && usernames.indexOf(u) === -1) usernames.push(u);
+  });
+  if (usernames.length === 0) return;
+  var params = usernames.map(function(u) { return 'users[]=' + encodeURIComponent(u); }).join('&');
+  fetch('/messages/api/online/?' + params)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      dots.forEach(function(d) {
+        d.style.display = data[d.dataset.username] ? 'inline-block' : 'none';
+      });
+    });
+}
+
+setInterval(checkOnlineStatus, 15000);
+checkOnlineStatus();
 </script>
 {% endblock %}

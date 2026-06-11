@@ -5,4 +5,5 @@ urlpatterns = [
     path("", views.inbox, name="inbox"),
     path("<int:pk>/", views.conversation_detail, name="conversation-detail"),
     path("new/<str:username>/", views.start_conversation, name="start-conversation"),
+    path("api/online/", views.check_online_status, name="check-online"),
 ]

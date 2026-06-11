@@ -26,7 +26,7 @@
 
       {% if stories_data %}
         {% for s in stories_data %}
-        <div class="story-ring" onclick="openStoryViewer('{{ s.user.username }}', '{{ s.user.profile.image.url }}', {{ s.story_ids|safe }})">
+        <div class="story-ring" onclick="openStoryViewer('{{ s.user.username }}')">
           <div class="ring-outer">
             <div class="ring-inner">
               <img src="{{ s.user.profile.image.url }}" alt="{{ s.user.username }}">
@@ -231,8 +231,112 @@ function savePost(btn, postId) {
   });
 }
 
-function openStoryViewer(username, avatarUrl, storyIds) {
-  alert('Story viewer coming soon!');
+function openStoryViewer(username) {
+  fetch('/stories/api/' + username + '/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.stories || data.stories.length === 0) {
+        alert('No stories from ' + username);
+        return;
+      }
+      currentStoryData = data;
+      currentStoryIndex = 0;
+      showStoryModal();
+    });
 }
+
+var currentStoryData = null;
+var currentStoryIndex = 0;
+var storyTimer = null;
+
+function showStoryModal() {
+  var modal = document.getElementById('storyViewerModal');
+  modal.style.display = 'flex';
+  renderStory();
+}
+
+function renderStory() {
+  if (!currentStoryData || currentStoryIndex >= currentStoryData.stories.length) {
+    closeStoryModal();
+    return;
+  }
+  var story = currentStoryData.stories[currentStoryIndex];
+  document.getElementById('storyViewerAvatar').src = currentStoryData.avatar_url;
+  document.getElementById('storyViewerUsername').textContent = currentStoryData.username;
+  document.getElementById('storyViewerImage').src = story.image_url;
+  document.getElementById('storyViewerCaption').textContent = story.caption || '';
+
+  var bars = document.getElementById('storyProgressBars');
+  bars.innerHTML = '';
+  currentStoryData.stories.forEach(function(s, i) {
+    var bar = document.createElement('div');
+    bar.className = 'story-progress-bar' + (i < currentStoryIndex ? ' filled' : '') + (i === currentStoryIndex ? ' active' : '');
+    bar.innerHTML = '<div class="story-progress-fill' + (i === currentStoryIndex ? ' animating' : '') + '" id="storyFill' + i + '"></div>';
+    bars.appendChild(bar);
+  });
+
+  if (storyTimer) clearInterval(storyTimer);
+  var elapsed = 0;
+  storyTimer = setInterval(function() {
+    elapsed++;
+    var fill = document.getElementById('storyFill' + currentStoryIndex);
+    if (fill) fill.style.width = Math.min(100, (elapsed / 50) * 100) + '%';
+    if (elapsed >= 50) {
+      clearInterval(storyTimer);
+      currentStoryIndex++;
+      renderStory();
+    }
+  }, 100);
+}
+
+function closeStoryModal() {
+  if (storyTimer) clearInterval(storyTimer);
+  document.getElementById('storyViewerModal').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var modal = document.getElementById('storyViewerModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      var rect = modal.querySelector('.story-viewer-content').getBoundingClientRect();
+      var x = e.clientX;
+      if (x < rect.left + rect.width * 0.3) {
+        // Tap left - previous story
+        if (currentStoryIndex > 0) {
+          if (storyTimer) clearInterval(storyTimer);
+          currentStoryIndex--;
+          renderStory();
+        }
+      } else if (x > rect.left + rect.width * 0.7) {
+        // Tap right - next story
+        if (storyTimer) clearInterval(storyTimer);
+        currentStoryIndex++;
+        renderStory();
+      }
+    });
+  }
+});
 </script>
+
+<!-- Story Viewer Modal -->
+<div id="storyViewerModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;">
+  <div class="story-viewer-content" style="position:relative;width:100%;max-width:420px;height:100vh;max-height:750px;display:flex;flex-direction:column;">
+    <!-- Progress bars -->
+    <div id="storyProgressBars" style="display:flex;gap:3px;padding:12px 12px 0;position:absolute;top:0;left:0;right:0;z-index:10;"></div>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:8px;padding:12px;position:absolute;top:20px;left:0;right:0;z-index:10;">
+      <img id="storyViewerAvatar" src="" alt="" style="width:32px;height:32px;border-radius:50%;border:2px solid white;object-fit:cover;">
+      <span id="storyViewerUsername" style="color:white;font-weight:600;font-size:14px;"></span>
+      <button onclick="closeStoryModal()" style="margin-left:auto;background:none;border:none;color:white;font-size:24px;cursor:pointer;">&times;</button>
+    </div>
+    <!-- Image -->
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:60px 0 80px;">
+      <img id="storyViewerImage" src="" alt="" style="max-width:100%;max-height:100%;object-fit:contain;">
+    </div>
+    <!-- Caption -->
+    <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,0.7));">
+      <p id="storyViewerCaption" style="color:white;margin:0;font-size:14px;"></p>
+    </div>
+  </div>
+</div>
 {% endblock %}
