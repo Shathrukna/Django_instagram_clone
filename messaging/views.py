@@ -42,22 +42,44 @@ def conversation_detail(request, pk):
     other_user = conversation.participants.exclude(pk=request.user.pk).first()
 
     if request.method == "POST":
-        form = MessageForm(request.POST)
+        form = MessageForm(request.POST, request.FILES)
         if form.is_valid():
-            Message.objects.create(
-                conversation=conversation,
-                sender=request.user,
-                text=form.cleaned_data["text"],
-            )
+            text = form.cleaned_data.get("text", "")
+            image = form.cleaned_data.get("image")
+            voice = form.cleaned_data.get("voice")
+            msg_kwargs = {
+                "conversation": conversation,
+                "sender": request.user,
+            }
+            if text:
+                msg_kwargs["text"] = text
+            if image:
+                msg_kwargs["image"] = image
+            if voice:
+                msg_kwargs["voice"] = voice
+            Message.objects.create(**msg_kwargs)
             return redirect("conversation-detail", pk=conversation.pk)
     else:
         form = MessageForm()
+
+    conversations = Conversation.objects.filter(participants=request.user)
+    conv_data = []
+    for conv in conversations:
+        other = conv.participants.exclude(pk=request.user.pk).first()
+        unread = conv.messages.filter(is_read=False).exclude(sender=request.user).count()
+        conv_data.append({
+            "conversation": conv,
+            "other_user": other,
+            "unread_count": unread,
+            "last_message": conv.messages.last(),
+        })
 
     context = {
         "conversation": conversation,
         "messages": messages_list,
         "form": form,
         "other_user": other_user,
+        "conv_data": conv_data,
     }
     return render(request, "messaging/chat.html", context)
 

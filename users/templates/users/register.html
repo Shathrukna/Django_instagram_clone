@@ -1,25 +1,58 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load static %}
 
-{% block title %}Register - Instagram{% endblock %}
+{% block title %}Sign Up - Instagram{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow">
-      <div class="card-body p-4">
-        <h2 class="text-center mb-4 logo-font" style="font-size: 2.5rem;">
-          Instagram
-        </h2>
-        <p class="text-muted text-center mb-4">Sign up to see photos from your friends.</p>
-        <form method="POST">
-          {% csrf_token %}
-          {{ form|crispy }}
-          <button type="submit" class="btn btn-primary w-100 mt-3">Sign Up</button>
-        </form>
-        <p class="text-center mt-3">
-          Already have an account? <a href="{% url 'login' %}">Log in</a>
+<div class="auth-container">
+  <div class="auth-phone">
+    <img src="https://static.cdninstagram.com/images/instagram/xig/homepage/screenshots/screenshot1.png?__makeup=v1" alt="Instagram">
+  </div>
+  <div class="auth-form-col">
+    <div class="auth-card">
+      <h1>Instagram</h1>
+      <p class="auth-subtitle">Sign up to see photos and videos from your friends.</p>
+
+      <button class="auth-facebook" type="button" style="justify-content:center;width:100%;margin-bottom:16px;" onclick="alert('Facebook login coming soon!')">
+        <i class="bi bi-facebook"></i> Log in with Facebook
+      </button>
+
+      <div class="auth-divider"><span>OR</span></div>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Username" required value="{{ form.username.value|default:'' }}">
+        {% if form.username.errors %}<div class="auth-error">{{ form.username.errors.0 }}</div>{% endif %}
+
+        <input type="email" name="email" placeholder="Email" required value="{{ form.email.value|default:'' }}">
+        {% if form.email.errors %}<div class="auth-error">{{ form.email.errors.0 }}</div>{% endif %}
+
+        <input type="password" name="password1" placeholder="Password" required>
+        {% if form.password1.errors %}<div class="auth-error">{{ form.password1.errors.0 }}</div>{% endif %}
+
+        <input type="password" name="password2" placeholder="Confirm password" required>
+        {% if form.password2.errors %}<div class="auth-error">{{ form.password2.errors.0 }}</div>{% endif %}
+
+        <p style="font-size:12px;color:var(--ig-text-secondary);margin:12px 0;">
+          People who use our service may have uploaded your contact information to Instagram. <a href="#" style="color:var(--ig-text-link);">Learn More</a>
         </p>
+        <p style="font-size:12px;color:var(--ig-text-secondary);margin:12px 0;">
+          By signing up, you agree to our <a href="#" style="color:var(--ig-text-link);">Terms</a>, <a href="#" style="color:var(--ig-text-link);">Privacy Policy</a> and <a href="#" style="color:var(--ig-text-link);">Cookies Policy</a>.
+        </p>
+
+        <button type="submit" class="btn-primary">Sign Up</button>
+      </form>
+    </div>
+
+    <div class="auth-redirect">
+      Have an account? <a href="{% url 'login' %}">Log in</a>
+    </div>
+
+    <div class="auth-app-links">
+      <p>Get the app.</p>
+      <div class="app-badges">
+        <a href="#"><img src="https://static.cdninstagram.com/images/instagram/xig/homepage/download/ios-download.svg" alt="Download on the App Store"></a>
+        <a href="#"><img src="https://static.cdninstagram.com/images/instagram/xig/homepage/download/android-download.svg" alt="Get it on Google Play"></a>
       </div>
     </div>
   </div>

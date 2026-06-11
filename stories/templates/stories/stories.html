@@ -3,64 +3,58 @@
 {% block title %}Stories - Instagram{% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-md-8 mx-auto">
-    <h4 class="mb-4">Stories</h4>
+<div class="stories-page">
+  <div style="max-width:935px;margin:0 auto;">
 
     <!-- Create Story -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-body">
-        <form method="POST" enctype="multipart/form-data" action="{% url 'create-story' %}">
-          {% csrf_token %}
-          <div class="d-flex align-items-center gap-3">
-            <input type="file" name="image" accept="image/*" class="form-control" required>
-            <input type="text" name="caption" class="form-control" placeholder="Caption (optional)" style="max-width: 200px;">
-            <button type="submit" class="btn btn-primary">Add Story</button>
-          </div>
-        </form>
-      </div>
+    <div class="create-story-card" onclick="document.getElementById('createStoryInput').click();">
+      <i class="bi bi-plus-square"></i>
+      <span>Create a Story</span>
     </div>
+    <form method="POST" enctype="multipart/form-data" action="{% url 'create-story' %}" style="display:none;">
+      {% csrf_token %}
+      <input type="file" name="image" accept="image/*" id="createStoryInput" onchange="this.form.submit();">
+      <input type="text" name="caption" id="storyCaption" placeholder="Caption">
+    </form>
 
     <!-- Your Stories -->
     {% if user_stories %}
-    <h5 class="mb-3">Your Stories</h5>
-    <div class="row g-2 mb-4">
+    <h5 style="font-weight:600;margin:24px 0 12px;font-size:16px;">Your Stories</h5>
+    <div class="stories-grid">
       {% for story in user_stories %}
-      <div class="col-4 col-md-3">
-        <div class="position-relative">
-          <img src="{{ story.image.url }}" alt="{{ story.caption }}" class="img-fluid rounded border" style="height: 200px; width: 100%; object-fit: cover;">
-          {% if story.caption %}
-          <div class="position-absolute bottom-0 start-0 w-100 p-2 text-white" style="background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-            <small>{{ story.caption }}</small>
-          </div>
-          {% endif %}
+      <div class="story-card">
+        <img src="{{ story.image.url }}" alt="{{ story.caption }}">
+        <div class="story-gradient-overlay"></div>
+        <div class="story-user-info">
+          <img src="{{ user.profile.image.url }}" alt="{{ user.username }}">
+          <span>{{ user.username }}</span>
         </div>
+        {% if story.caption %}
+        <div class="story-caption">{{ story.caption }}</div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Followed Users Stories -->
-    <h5 class="mb-3">Recent Stories</h5>
-    <div class="row g-2">
+    <!-- Recent Stories -->
+    <h5 style="font-weight:600;margin:24px 0 12px;font-size:16px;">All Stories</h5>
+    <div class="stories-grid">
       {% for story in stories %}
-      <div class="col-4 col-md-3">
-        <div class="position-relative">
-          <img src="{{ story.image.url }}" alt="{{ story.caption }}" class="img-fluid rounded border" style="height: 200px; width: 100%; object-fit: cover;">
-          <div class="position-absolute top-0 start-0 p-2">
-            <img src="{{ story.user.profile.image.url }}" alt="{{ story.user.username }}" class="rounded-circle border border-white" style="width: 32px; height: 32px; object-fit: cover;">
-          </div>
-          <div class="position-absolute bottom-0 start-0 w-100 p-2 text-white" style="background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-            <small><strong>{{ story.user.username }}</strong></small>
-            {% if story.caption %}
-            <br><small>{{ story.caption }}</small>
-            {% endif %}
-          </div>
+      <div class="story-card">
+        <img src="{{ story.image.url }}" alt="{{ story.caption }}">
+        <div class="story-gradient-overlay"></div>
+        <div class="story-user-info">
+          <img src="{{ story.user.profile.image.url }}" alt="{{ story.user.username }}">
+          <span>{{ story.user.username }}</span>
         </div>
+        {% if story.caption %}
+        <div class="story-caption">{{ story.caption }}</div>
+        {% endif %}
       </div>
       {% empty %}
-      <div class="col-12 text-center py-5">
-        <p class="text-muted">No recent stories from followed users.</p>
+      <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--ig-text-secondary);">
+        <p>No stories from followed users.</p>
       </div>
       {% endfor %}
     </div>

@@ -1,48 +1,200 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ other_user.username }} - Chat{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow">
-      <div class="card-header bg-white d-flex align-items-center gap-2">
-        <a href="{% url 'user-profile' other_user.username %}" class="text-decoration-none d-flex align-items-center gap-2 text-dark">
-          <img src="{{ other_user.profile.image.url }}" alt="{{ other_user.username }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
-          <strong>{{ other_user.username }}</strong>
-        </a>
-        <a href="{% url 'inbox' %}" class="btn btn-sm btn-outline-secondary ms-auto">&larr;</a>
-      </div>
-      <div class="card-body" style="height: 400px; overflow-y: auto;" id="chat-messages">
-        {% for msg in messages %}
-        <div class="d-flex mb-3 {% if msg.sender == user %}justify-content-end{% endif %}">
-          <div class="{% if msg.sender == user %}bg-primary text-white{% else %}bg-light{% endif %} rounded-3 px-3 py-2" style="max-width: 70%;">
-            <p class="mb-0 small">{{ msg.text }}</p>
-            <small class="{% if msg.sender == user %}text-white-50{% else %}text-muted{% endif %}">{{ msg.created_at|date:"H:i" }}</small>
-          </div>
+<div class="messages-layout">
+  <div class="msg-sidebar">
+    <div class="msg-sidebar-header">
+      <h3>{{ user.username }}</h3>
+      <button onclick="alert('New message coming soon!')"><i class="bi bi-pencil-square"></i></button>
+    </div>
+    <div class="msg-conversations">
+      {% for item in conv_data %}
+      <a href="{% url 'conversation-detail' item.conversation.id %}" class="msg-conv-item text-decoration-none {% if item.conversation.id == conversation.id %}active{% endif %}">
+        <img src="{{ item.other_user.profile.image.url }}" alt="{{ item.other_user.username }}">
+        <div class="mci-info">
+          <span class="mci-username">{{ item.other_user.username }}</span>
+          {% if item.last_message %}
+          <span class="mci-preview">
+            {% if item.last_message.image %}<i class="bi bi-image me-1"></i>{% endif %}
+            {% if item.last_message.voice %}<i class="bi bi-mic me-1"></i>{% endif %}
+            {{ item.last_message.text|truncatewords:8 }}{% if not item.last_message.text and item.last_message.image %}Photo{% elif not item.last_message.text and item.last_message.voice %}Voice message{% endif %}
+          </span>
+          {% endif %}
         </div>
-        {% empty %}
-        <div class="text-center py-5 text-muted">
-          <p>No messages yet. Say hello!</p>
-        </div>
-        {% endfor %}
+        {% if item.unread_count > 0 %}
+        <div class="mci-unread"></div>
+        {% endif %}
+      </a>
+      {% empty %}
+      <div style="text-align:center;padding:40px 20px;">
+        <p style="color:var(--ig-text-secondary);">No conversations.</p>
       </div>
-      <div class="card-footer bg-white">
-        <form method="POST">
-          {% csrf_token %}
-          <div class="input-group">
-            {{ form.text }}
-            <button type="submit" class="btn btn-primary">Send</button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="msg-main">
+    <div class="msg-main-header">
+      <button class="mmh-back" onclick="window.location.href='{% url 'inbox' %}'"><i class="bi bi-arrow-left"></i></button>
+      <a href="{% url 'user-profile' other_user.username %}">
+        <img src="{{ other_user.profile.image.url }}" alt="{{ other_user.username }}">
+      </a>
+      <a href="{% url 'user-profile' other_user.username %}" class="mmh-username text-decoration-none">{{ other_user.username }}</a>
+    </div>
+
+    <div class="msg-messages" id="chatMessages">
+      {% for msg in messages %}
+      <div class="msg-bubble {% if msg.sender == user %}sent{% else %}received{% endif %}">
+        {% if msg.text %}
+          <div>{{ msg.text }}</div>
+        {% endif %}
+        {% if msg.image %}
+          <div class="msg-image-wrap">
+            <img src="{{ msg.image.url }}" alt="Image" class="msg-image" onclick="openImagePreview('{{ msg.image.url }}')" loading="lazy">
           </div>
-        </form>
+        {% endif %}
+        {% if msg.voice %}
+          <div class="msg-voice-wrap">
+            <i class="bi bi-mic-fill me-2"></i>
+            <audio src="{{ msg.voice.url }}" controls style="height:30px;max-width:180px;"></audio>
+          </div>
+        {% endif %}
+        <span class="msg-time">{{ msg.created_at|date:"g:i A" }}</span>
+      </div>
+      {% empty %}
+      <div style="text-align:center;padding:40px;color:var(--ig-text-secondary);align-self:center;">
+        <p>No messages yet. Say hello!</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="msg-input-area">
+      <form method="POST" enctype="multipart/form-data" id="msgForm" style="display:flex;width:100%;align-items:center;gap:8px;">
+        {% csrf_token %}
+        <button type="button" class="msg-attach-btn" onclick="document.getElementById('imageInput').click();" title="Send image">
+          <i class="bi bi-image"></i>
+        </button>
+        <button type="button" class="msg-attach-btn" id="voiceBtn" onclick="toggleVoiceRecording()" title="Voice message">
+          <i class="bi bi-mic"></i>
+        </button>
+        <input type="file" name="image" id="imageInput" accept="image/*" style="display:none;" onchange="onImageSelected(this)">
+        <input type="file" name="voice" id="voiceInput" accept="audio/*" style="display:none;">
+        <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--ig-bg);border:1px solid var(--ig-border);border-radius:22px;padding:0 12px;">
+          <input type="text" name="text" id="msgText" placeholder="Message..." autocomplete="off" style="flex:1;height:40px;border:none;outline:none;background:transparent;font-size:14px;">
+          <span id="imagePreview" style="display:none;font-size:12px;color:var(--ig-primary);flex-shrink:0;">
+            <i class="bi bi-image"></i> <span id="imageName"></span>
+            <button type="button" onclick="clearImage()" style="background:none;border:none;color:var(--ig-error);padding:0 4px;">&times;</button>
+          </span>
+        </div>
+        {% if form.text.errors %}<div class="auth-error">{{ form.text.errors.0 }}</div>{% endif %}
+        <button type="submit" style="background:none;border:none;color:var(--ig-primary);font-weight:600;font-size:14px;cursor:pointer;padding:8px;flex-shrink:0;">Send</button>
+      </form>
+      <div id="voiceRecorder" style="display:none;padding:8px 0;width:100%;">
+        <div style="display:flex;align-items:center;gap:8px;background:var(--ig-error);color:white;border-radius:22px;padding:4px 16px;">
+          <span id="recordingTimer" style="font-weight:600;">0:00</span>
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;">
+            <div id="recordingLevel" style="height:100%;width:0;background:white;border-radius:2px;transition:width 0.1s;"></div>
+          </div>
+          <button type="button" onclick="stopVoiceRecording()" style="background:none;border:none;color:white;font-weight:600;cursor:pointer;">Stop</button>
+          <button type="button" onclick="cancelVoiceRecording()" style="background:none;border:none;color:white;cursor:pointer;font-size:18px;">&times;</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Image Preview Modal -->
+<div id="imagePreviewModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:1000;display:none;align-items:center;justify-content:center;cursor:pointer;" onclick="this.style.display='none'">
+  <img id="previewImage" src="" alt="" style="max-width:95%;max-height:95%;object-fit:contain;">
+</div>
+
 <script>
-// Scroll to bottom
-const chatBox = document.getElementById('chat-messages');
-if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+var chatEl = document.getElementById('chatMessages');
+if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+function onImageSelected(input) {
+  var file = input.files[0];
+  if (file) {
+    document.getElementById('imagePreview').style.display = 'inline';
+    document.getElementById('imageName').textContent = file.name;
+  }
+}
+function clearImage() {
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imagePreview').style.display = 'none';
+}
+function openImagePreview(url) {
+  var modal = document.getElementById('imagePreviewModal');
+  document.getElementById('previewImage').src = url;
+  modal.style.display = 'flex';
+}
+
+// Voice Recording
+var mediaRecorder = null;
+var audioChunks = [];
+var recordingTimer = null;
+var seconds = 0;
+
+function toggleVoiceRecording() {
+  var recorder = document.getElementById('voiceRecorder');
+  if (recorder.style.display === 'block') {
+    stopVoiceRecording();
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Voice recording not supported in this browser.');
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(function(stream) {
+      audioChunks = [];
+      seconds = 0;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = function(e) { audioChunks.push(e.data); };
+      mediaRecorder.onstop = function() {
+        stream.getTracks().forEach(function(t) { t.stop(); });
+        var blob = new Blob(audioChunks, { type: 'audio/webm' });
+        var file = new File([blob], 'voice-' + Date.now() + '.webm', { type: 'audio/webm' });
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('voiceInput').files = dt.files;
+        document.getElementById('voiceInput').dispatchEvent(new Event('change'));
+      };
+      mediaRecorder.start();
+      document.getElementById('voiceBtn').querySelector('i').className = 'bi bi-mic-fill text-danger';
+      document.getElementById('voiceRecorder').style.display = 'block';
+      document.getElementById('recordingTimer').textContent = '0:00';
+      recordingTimer = setInterval(function() {
+        seconds++;
+        var mins = Math.floor(seconds / 60);
+        var secs = seconds % 60;
+        document.getElementById('recordingTimer').textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }, 1000);
+    })
+    .catch(function(err) {
+      alert('Microphone access denied. Please allow microphone permissions.');
+    });
+}
+function stopVoiceRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    clearInterval(recordingTimer);
+    document.getElementById('voiceBtn').querySelector('i').className = 'bi bi-mic';
+    document.getElementById('voiceRecorder').style.display = 'none';
+    // Auto-submit after recording
+    document.getElementById('msgForm').submit();
+  }
+}
+function cancelVoiceRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    clearInterval(recordingTimer);
+    document.getElementById('voiceBtn').querySelector('i').className = 'bi bi-mic';
+    document.getElementById('voiceRecorder').style.display = 'none';
+    audioChunks = [];
+  }
+}
 </script>
 {% endblock %}

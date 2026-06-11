@@ -1,114 +1,130 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ profile_user.username }} - Instagram{% endblock %}
+{% block title %}{{ profile_user.username }} (@{{ profile_user.username }}) - Instagram{% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-md-8 mx-auto">
+<div class="profile-page">
+  <div class="ig-container-narrow">
     <!-- Profile Header -->
-    <div class="row mb-4">
-      <div class="col-md-4 text-center">
-        <img src="{{ profile_user.profile.image.url }}" alt="{{ profile_user.username }}"
-             class="rounded-circle border" style="width: 150px; height: 150px; object-fit: cover;">
+    <div class="profile-header">
+      <div class="profile-avatar">
+        <img src="{{ profile_user.profile.image.url }}" alt="{{ profile_user.username }}">
       </div>
-      <div class="col-md-8">
-        <div class="d-flex align-items-center gap-3 mb-2">
-          <h3 class="mb-0">{{ profile_user.username }}</h3>
+      <div class="profile-info">
+        <div class="profile-info-row">
+          <span class="profile-username">{{ profile_user.username }}</span>
           {% if user == profile_user %}
-            <a href="{% url 'edit-profile' %}" class="btn btn-outline-secondary btn-sm">Edit Profile</a>
+            <a href="{% url 'edit-profile' %}" class="btn-profile-edit">Edit profile</a>
+            <button class="btn-profile-settings" title="Settings"><i class="bi bi-gear"></i></button>
           {% elif user.is_authenticated %}
             {% if is_following %}
-              <a href="{% url 'unfollow-user' profile_user.username %}" class="btn btn-outline-danger btn-sm">Unfollow</a>
+              <a href="{% url 'unfollow-user' profile_user.username %}" class="btn-profile-following">Following</a>
             {% else %}
-              <a href="{% url 'follow-user' profile_user.username %}" class="btn btn-primary btn-sm">Follow</a>
+              <a href="{% url 'follow-user' profile_user.username %}" class="btn-profile-follow">Follow</a>
             {% endif %}
+            <a href="{% url 'start-conversation' profile_user.username %}" class="btn-profile-edit">Message</a>
+            <button class="btn-profile-settings"><i class="bi bi-three-dots"></i></button>
           {% endif %}
         </div>
-        <div class="d-flex gap-4 mb-2">
+
+        <div class="profile-stats">
           <span><strong>{{ posts_count }}</strong> posts</span>
-          <a href="{% url 'followers-list' profile_user.username %}" class="text-decoration-none text-dark">
+          <a href="{% url 'followers-list' profile_user.username %}" class="text-decoration-none" style="color:var(--ig-text);">
             <span><strong>{{ followers_count }}</strong> followers</span>
           </a>
-          <a href="{% url 'following-list' profile_user.username %}" class="text-decoration-none text-dark">
+          <a href="{% url 'following-list' profile_user.username %}" class="text-decoration-none" style="color:var(--ig-text);">
             <span><strong>{{ following_count }}</strong> following</span>
           </a>
         </div>
-        {% if profile_user.profile.bio %}
-          <p class="mb-1">{{ profile_user.profile.bio }}</p>
-        {% endif %}
-        {% if profile_user.profile.website %}
-          <a href="{{ profile_user.profile.website }}" target="_blank" class="text-decoration-none">{{ profile_user.profile.website }}</a>
-        {% endif %}
+
+        <div class="profile-bio">
+          <span class="bio-name">{{ profile_user.get_full_name|default:profile_user.username }}</span>
+          {% if profile_user.profile.bio %}
+            <span class="bio-text">{{ profile_user.profile.bio|linebreaksbr }}</span>
+          {% endif %}
+          {% if profile_user.profile.website %}
+            <a href="{{ profile_user.profile.website }}" target="_blank" rel="nofollow" class="bio-url">{{ profile_user.profile.website }}</a>
+          {% endif %}
+        </div>
       </div>
     </div>
 
-    <!-- Tab Navigation -->
-    <ul class="nav nav-tabs justify-content-center mb-3" id="profileTabs">
-      <li class="nav-item">
-        <a class="nav-link active" href="#posts" data-bs-toggle="tab">Posts</a>
-      </li>
+    <!-- Profile Tabs -->
+    <div class="profile-tabs">
+      <button class="profile-tab active" onclick="switchProfileTab(this, 'posts')">
+        <i class="bi bi-grid-3x3-gap-fill"></i> Posts
+      </button>
       {% if user == profile_user %}
-      <li class="nav-item">
-        <a class="nav-link" href="#saved" data-bs-toggle="tab">Saved</a>
-      </li>
-      {% endif %}
-    </ul>
-
-    <div class="tab-content">
-      <!-- Posts Tab -->
-      <div class="tab-pane fade show active" id="posts">
-        <div class="row g-2">
-          {% for post in posts %}
-          <div class="col-4">
-            <a href="{% url 'post-detail' post.id %}" class="text-decoration-none">
-              <div class="position-relative">
-                <img src="{{ post.image.url }}" alt="{{ post.caption }}" class="img-fluid border" style="width: 100%; height: 300px; object-fit: cover;">
-                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-0 hover-overlay">
-                  <div class="text-white d-none">
-                    <span>&#9829; {{ post.likes.count }}</span>
-                    <span class="ms-3">&#128172; {{ post.comments.count }}</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </div>
-          {% empty %}
-          <div class="col-12 text-center py-5">
-            <p class="text-muted">No posts yet.</p>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <!-- Saved Tab -->
-      {% if user == profile_user %}
-      <div class="tab-pane fade" id="saved">
-        <div class="row g-2">
-          {% for post in saved_posts %}
-          <div class="col-4">
-            <a href="{% url 'post-detail' post.id %}" class="text-decoration-none">
-              <img src="{{ post.image.url }}" alt="{{ post.caption }}" class="img-fluid border" style="width: 100%; height: 300px; object-fit: cover;">
-            </a>
-          </div>
-          {% empty %}
-          <div class="col-12 text-center py-5">
-            <p class="text-muted">No saved posts yet.</p>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
+      <button class="profile-tab" onclick="switchProfileTab(this, 'saved')">
+        <i class="bi bi-bookmark"></i> Saved
+      </button>
+      <button class="profile-tab" onclick="switchProfileTab(this, 'tagged')">
+        <i class="bi bi-person-tag"></i> Tagged
+      </button>
       {% endif %}
     </div>
+
+    <!-- Posts Grid -->
+    <div id="profile-posts" class="profile-tab-content">
+      <div class="profile-grid">
+        {% for post in posts %}
+        <a href="{% url 'post-detail' post.id %}" class="profile-grid-item">
+          <img src="{{ post.image.url }}" alt="{{ post.caption }}" loading="lazy">
+          <div class="overlay">
+            <span>&#9829; {{ post.likes_count }}</span>
+            <span>&#128172; {{ post.comments_count }}</span>
+          </div>
+        </a>
+        {% empty %}
+        <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
+          {% if user == profile_user %}
+            <h4 style="font-weight:400;margin-bottom:8px;">Share your first post</h4>
+            <p style="color:var(--ig-text-secondary);margin-bottom:16px;">When you share posts, they'll appear here.</p>
+            <a href="{% url 'create-post' %}" class="btn-profile-edit" style="display:inline-block;">Share a post</a>
+          {% else %}
+            <p style="color:var(--ig-text-secondary);">No posts yet.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Saved Tab -->
+    {% if user == profile_user %}
+    <div id="profile-saved" class="profile-tab-content" style="display:none;">
+      <div class="profile-grid">
+        {% for post in saved_posts %}
+        <a href="{% url 'post-detail' post.id %}" class="profile-grid-item">
+          <img src="{{ post.image.url }}" alt="{{ post.caption }}" loading="lazy">
+          <div class="overlay">
+            <span>&#9829; {{ post.likes_count }}</span>
+            <span>&#128172; {{ post.comments_count }}</span>
+          </div>
+        </a>
+        {% empty %}
+        <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
+          <p style="color:var(--ig-text-secondary);">No saved posts yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="profile-tagged" class="profile-tab-content" style="display:none;">
+      <div style="text-align:center;padding:60px 0;">
+        <p style="color:var(--ig-text-secondary);">No tagged posts.</p>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
-<style>
-  .hover-overlay:hover .bg-opacity-0 {
-    background-opacity: 0.3 !important;
-  }
-  .hover-overlay:hover .d-none {
-    display: block !important;
-  }
-</style>
+<script>
+function switchProfileTab(btn, tabName) {
+  document.querySelectorAll('.profile-tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.profile-tab-content').forEach(function(c) { c.style.display = 'none'; });
+  document.getElementById('profile-' + tabName).style.display = 'block';
+}
+</script>
 {% endblock %}

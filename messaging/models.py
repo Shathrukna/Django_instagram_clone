@@ -21,7 +21,9 @@ class Message(models.Model):
     sender = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="sent_messages"
     )
-    text = models.TextField()
+    text = models.TextField(blank=True, default="")
+    image = models.ImageField(upload_to="message_images", blank=True, null=True)
+    voice = models.FileField(upload_to="message_voice", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
@@ -29,4 +31,4 @@ class Message(models.Model):
         ordering = ["created_at"]
 
     def __str__(self):
-        return f"{self.sender.username}: {self.text[:50]}"
+        return f"{self.sender.username}: {self.text[:50] or '[media]'}"

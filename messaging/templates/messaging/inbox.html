@@ -3,29 +3,42 @@
 {% block title %}Messages - Instagram{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <h4 class="mb-4">Messages</h4>
-    <div class="list-group">
+<div class="messages-layout">
+  <div class="msg-sidebar">
+    <div class="msg-sidebar-header">
+      <h3>{{ user.username }}</h3>
+      <button onclick="alert('New message coming soon!')"><i class="bi bi-pencil-square"></i></button>
+    </div>
+    <div class="msg-conversations">
       {% for item in conv_data %}
-        <a href="{% url 'conversation-detail' item.conversation.id %}" class="list-group-item list-group-item-action d-flex align-items-center gap-3">
-          <img src="{{ item.other_user.profile.image.url }}" alt="{{ item.other_user.username }}" class="rounded-circle" style="width: 44px; height: 44px; object-fit: cover;">
-          <div class="flex-grow-1">
-            <strong>{{ item.other_user.username }}</strong>
-            {% if item.last_message %}
-              <br><small class="text-muted">{{ item.last_message.text|truncatewords:8 }}</small>
-            {% endif %}
-          </div>
-          {% if item.unread_count > 0 %}
-            <span class="badge bg-primary rounded-pill">{{ item.unread_count }}</span>
+      <a href="{% url 'conversation-detail' item.conversation.id %}" class="msg-conv-item text-decoration-none">
+        <img src="{{ item.other_user.profile.image.url }}" alt="{{ item.other_user.username }}">
+        <div class="mci-info">
+          <span class="mci-username">{{ item.other_user.username }}</span>
+          {% if item.last_message %}
+          <span class="mci-preview">{{ item.last_message.text|truncatewords:8 }}</span>
           {% endif %}
-        </a>
+        </div>
+        {% if item.unread_count > 0 %}
+        <div class="mci-unread"></div>
+        {% endif %}
+      </a>
       {% empty %}
-      <div class="text-center py-5">
-        <p class="text-muted">No conversations yet.</p>
-        <a href="{% url 'explore' %}" class="btn btn-primary">Find People</a>
+      <div style="text-align:center;padding:40px 20px;">
+        <p style="color:var(--ig-text-secondary);">No messages yet.</p>
+        <a href="{% url 'explore' %}" style="color:var(--ig-primary);font-weight:600;font-size:14px;">Find people</a>
       </div>
       {% endfor %}
+    </div>
+  </div>
+  <div class="msg-main" style="display:flex;align-items:center;justify-content:center;">
+    <div style="text-align:center;">
+      <div style="width:96px;height:96px;border-radius:50%;border:2px solid var(--ig-text);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+        <i class="bi bi-send" style="font-size:40px;color:var(--ig-text);"></i>
+      </div>
+      <h3 style="font-weight:400;">Your Messages</h3>
+      <p style="color:var(--ig-text-secondary);margin-bottom:16px;">Send a message to start a conversation.</p>
+      <a href="{% url 'explore' %}" style="display:inline-block;height:32px;padding:5px 24px;background:var(--ig-primary);color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;">Send Message</a>
     </div>
   </div>
 </div>

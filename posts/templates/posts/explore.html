@@ -3,28 +3,27 @@
 {% block title %}Explore - Instagram{% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-12">
-    <h4 class="mb-4">Explore</h4>
-    <div class="row g-2">
-      {% for post in posts %}
-      <div class="col-4 col-md-3">
-        <a href="{% url 'post-detail' post.id %}" class="text-decoration-none">
-          <img src="{{ post.image.url }}" alt="{{ post.caption }}" class="img-fluid border" style="width: 100%; height: 250px; object-fit: cover;">
-        </a>
+<div>
+  <div class="explore-grid">
+    {% for post in posts %}
+    <a href="{% url 'post-detail' post.id %}" class="explore-item">
+      <img src="{{ post.image.url }}" alt="{{ post.caption }}" loading="lazy">
+      <div class="explore-overlay">
+        <span>&#9829; {{ post.likes_count }}</span>
+        <span>&#128172; {{ post.comments_count }}</span>
       </div>
-      {% empty %}
-      <div class="col-12 text-center py-5">
-        <p class="text-muted">No posts to explore.</p>
-      </div>
-      {% endfor %}
+    </a>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:80px 20px;">
+      <h4 style="font-weight:400;color:var(--ig-text-secondary);">No posts to explore yet.</h4>
     </div>
-
-    {% if posts.has_next %}
-    <div class="text-center mt-4">
-      <a href="?page={{ posts.next_page_number }}" class="btn btn-outline-primary">Load More</a>
-    </div>
-    {% endif %}
+    {% endfor %}
   </div>
+
+  {% if posts.has_next %}
+  <div style="text-align:center;padding:24px 0 40px;">
+    <a href="?page={{ posts.next_page_number }}" style="color:var(--ig-primary);font-weight:600;font-size:14px;">Load more</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -1,31 +1,42 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Login - Instagram{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow">
-      <div class="card-body p-4">
-        <h2 class="text-center mb-4 logo-font" style="font-size: 2.5rem;">
-          Instagram
-        </h2>
-        <form method="POST">
-          {% csrf_token %}
-          <div class="mb-3">
-            <input type="text" name="username" class="form-control" placeholder="Username" required>
-          </div>
-          <div class="mb-3">
-            <input type="password" name="password" class="form-control" placeholder="Password" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Log In</button>
-        </form>
-        <div class="text-center mt-3">
-          <a href="{% url 'password_reset' %}" class="text-muted small">Forgot password?</a>
-        </div>
-        <p class="text-center mt-3 mb-0">
-          Don't have an account? <a href="{% url 'register' %}">Sign up</a>
-        </p>
+<div class="auth-container">
+  <div class="auth-phone">
+    <img src="https://static.cdninstagram.com/images/instagram/xig/homepage/screenshots/screenshot1.png?__makeup=v1" alt="Instagram">
+  </div>
+  <div class="auth-form-col">
+    <div class="auth-card">
+      <h1>Instagram</h1>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Phone number, username, or email" required value="{{ request.POST.username }}">
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit" class="btn-primary">Log In</button>
+      </form>
+
+      <div class="auth-divider"><span>OR</span></div>
+
+      <button class="auth-facebook" type="button" onclick="alert('Facebook login coming soon!')">
+        <i class="bi bi-facebook"></i> Log in with Facebook
+      </button>
+
+      <a href="{% url 'password_reset' %}" class="auth-forgot">Forgot password?</a>
+    </div>
+
+    <div class="auth-redirect">
+      Don't have an account? <a href="{% url 'register' %}">Sign up</a>
+    </div>
+
+    <div class="auth-app-links">
+      <p>Get the app.</p>
+      <div class="app-badges">
+        <a href="#"><img src="https://static.cdninstagram.com/images/instagram/xig/homepage/download/ios-download.svg" alt="Download on the App Store"></a>
+        <a href="#"><img src="https://static.cdninstagram.com/images/instagram/xig/homepage/download/android-download.svg" alt="Get it on Google Play"></a>
       </div>
     </div>
   </div>

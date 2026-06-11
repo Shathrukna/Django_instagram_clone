@@ -25,9 +25,40 @@ def feed(request):
 
     comment_form = CommentForm()
 
+    liked_posts = set(
+        Like.objects.filter(user=request.user).values_list("post_id", flat=True)
+    )
+    saved_posts = set(
+        SavedPost.objects.filter(user=request.user).values_list("post_id", flat=True)
+    )
+
+    from stories.models import Story
+    from django.utils import timezone
+    import json
+    story_users = Follow.objects.filter(
+        follower=request.user
+    ).values_list("following", flat=True)
+    stories = Story.objects.filter(
+        user__in=story_users, expires_at__gt=timezone.now()
+    ).select_related("user").order_by("-created_at")
+
+    stories_data = []
+    seen_users = set()
+    for s in stories:
+        if s.user.id not in seen_users:
+            seen_users.add(s.user.id)
+            user_stories = stories.filter(user=s.user)
+            stories_data.append({
+                "user": s.user,
+                "story_ids": json.dumps([st.id for st in user_stories]),
+            })
+
     context = {
         "posts": posts_page,
         "comment_form": comment_form,
+        "liked_posts": liked_posts,
+        "saved_posts": saved_posts,
+        "stories_data": stories_data,
     }
     return render(request, "posts/feed.html", context)
 
@@ -59,7 +90,7 @@ def create_post(request):
 @login_required
 def post_detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    comments = Comment.objects.filter(post=post).order_by("-created_at")
+    comments = Comment.objects.filter(post=post).order_by("created_at")
     is_liked = Like.objects.filter(user=request.user, post=post).exists()
     is_saved = SavedPost.objects.filter(user=request.user, post=post).exists()
 

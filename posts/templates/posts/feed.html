@@ -5,124 +5,234 @@
 {% block title %}Instagram{% endblock %}
 
 {% block content %}
-<div class="row">
-  <!-- Main Feed -->
-  <div class="col-md-8">
+<div class="feed-layout">
+  <div class="feed-main">
+    <!-- Stories Bar -->
+    <div class="stories-bar">
+      <!-- Your story (create) -->
+      <div class="story-ring" onclick="document.getElementById('story-upload-input').click();">
+        <div class="ring-outer no-story" style="position:relative;">
+          <div class="ring-inner">
+            <img src="{{ user.profile.image.url }}" alt="{{ user.username }}">
+          </div>
+          <span class="story-plus">+</span>
+        </div>
+        <span class="story-name">Your Story</span>
+      </div>
+      <form method="POST" enctype="multipart/form-data" action="{% url 'create-story' %}" style="display:none;">
+        {% csrf_token %}
+        <input type="file" name="image" accept="image/*" id="story-upload-input" onchange="this.form.submit();">
+      </form>
+
+      {% if stories_data %}
+        {% for s in stories_data %}
+        <div class="story-ring" onclick="openStoryViewer('{{ s.user.username }}', '{{ s.user.profile.image.url }}', {{ s.story_ids|safe }})">
+          <div class="ring-outer">
+            <div class="ring-inner">
+              <img src="{{ s.user.profile.image.url }}" alt="{{ s.user.username }}">
+            </div>
+          </div>
+          <span class="story-name">{{ s.user.username }}</span>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Feed Posts -->
     {% if posts %}
       {% for post in posts %}
-      <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-white d-flex align-items-center gap-2">
-          <a href="{% url 'user-profile' post.user.username %}" class="text-decoration-none d-flex align-items-center gap-2 text-dark">
-            <img src="{{ post.user.profile.image.url }}" alt="{{ post.user.username }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
-            <strong>{{ post.user.username }}</strong>
-          </a>
-        </div>
-        <a href="{% url 'post-detail' post.id %}">
-          <img src="{{ post.image.url }}" alt="{{ post.caption }}" class="card-img-top" style="max-height: 600px; object-fit: contain; background: #000;">
-        </a>
-        <div class="card-body">
-          <div class="d-flex gap-3 mb-2">
-            <button class="btn btn-sm like-btn" data-post-id="{{ post.id }}" style="border: none; background: none; font-size: 1.5rem;">
-              <span class="like-icon">{% if post.id in liked_posts %}&#10084;&#65039;{% else %}&#9825;{% endif %}</span>
-            </button>
-            <a href="{% url 'post-detail' post.id %}" class="text-dark text-decoration-none" style="font-size: 1.5rem;">&#128172;</a>
-            <button class="btn btn-sm save-btn ms-auto" data-post-id="{{ post.id }}" style="border: none; background: none; font-size: 1.5rem;">
-              <span class="save-icon">&#128190;</span>
-            </button>
+      <article class="post-card">
+        <div class="post-header">
+          <div class="post-header-left">
+            <a href="{% url 'user-profile' post.user.username %}">
+              <img src="{{ post.user.profile.image.url }}" alt="{{ post.user.username }}">
+            </a>
+            <a href="{% url 'user-profile' post.user.username %}" class="username">{{ post.user.username }}</a>
           </div>
-          <p class="mb-1"><strong>{{ post.likes_count }}</strong> likes</p>
-          <p class="mb-1">
-            <a href="{% url 'user-profile' post.user.username %}" class="text-decoration-none text-dark"><strong>{{ post.user.username }}</strong></a>
-            {{ post.caption }}
-          </p>
-          {% if post.comments.exists %}
-          <a href="{% url 'post-detail' post.id %}" class="text-muted text-decoration-none small">
-            View all {{ post.comments_count }} comments
-          </a>
+          <div style="position:relative;">
+            <button class="post-options" onclick="togglePostMenu(this)">•••</button>
+            <div class="ig-dropdown" style="display:none;">
+              {% if post.user == user %}
+                <a href="{% url 'edit-post' post.id %}">Edit</a>
+                <a href="{% url 'delete-post' post.id %}" class="text-danger">Delete</a>
+              {% else %}
+                <a href="#">Report</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <a href="{% url 'post-detail' post.id %}">
+          <img src="{{ post.image.url }}" alt="{{ post.caption }}" class="post-image" loading="lazy">
+        </a>
+
+        <div class="post-actions">
+          <button class="like-btn" data-post-id="{{ post.id }}" onclick="likePost(this, {{ post.id }})">
+            {% if post.id in liked_posts %}
+              <i class="bi bi-heart-fill text-danger"></i>
+            {% else %}
+              <i class="bi bi-heart"></i>
+            {% endif %}
+          </button>
+          <a href="{% url 'post-detail' post.id %}"><i class="bi bi-chat"></i></a>
+          <a href="#"><i class="bi bi-share"></i></a>
+          <button class="save-btn" data-post-id="{{ post.id }}" onclick="savePost(this, {{ post.id }})" style="margin-left:auto;padding-right:0;">
+            {% if post.id in saved_posts %}
+              <i class="bi bi-bookmark-fill"></i>
+            {% else %}
+              <i class="bi bi-bookmark"></i>
+            {% endif %}
+          </button>
+        </div>
+
+        <div class="post-likes" id="likes-count-{{ post.id }}">
+          {% if post.likes_count > 0 %}
+            {{ post.likes_count }} {% if post.likes_count == 1 %}like{% else %}likes{% endif %}
           {% endif %}
-          <div class="mt-2">
-            {% for comment in post.comments.all|slice:":2" %}
-            <p class="mb-0 small">
-              <a href="{% url 'user-profile' comment.user.username %}" class="text-decoration-none text-dark"><strong>{{ comment.user.username }}</strong></a>
+        </div>
+
+        <div class="post-caption">
+          <a href="{% url 'user-profile' post.user.username %}" class="username">{{ post.user.username }}</a>
+          {{ post.caption }}
+        </div>
+
+        {% if post.comments_count > 0 %}
+        <div class="post-comments-link">
+          <a href="{% url 'post-detail' post.id %}">View all {{ post.comments_count }} comments</a>
+        </div>
+        {% endif %}
+
+        {% with top_comments=post.comments.all|slice:":2" %}
+          {% if top_comments %}
+          <div class="post-comments-preview">
+            {% for comment in top_comments %}
+            <div class="post-comment">
+              <a href="{% url 'user-profile' comment.user.username %}" class="username">{{ comment.user.username }}</a>
               {{ comment.text }}
-            </p>
+            </div>
             {% endfor %}
           </div>
-          <small class="text-muted">{{ post.created_at|time_ago }}</small>
+          {% endif %}
+        {% endwith %}
+
+        <div class="post-time">{{ post.created_at|time_ago }}</div>
+
+        <div class="post-add-comment">
+          <form method="POST" action="{% url 'post-detail' post.id %}">
+            {% csrf_token %}
+            <input type="text" name="text" placeholder="Add a comment..." autocomplete="off">
+            <button type="submit">Post</button>
+          </form>
         </div>
-      </div>
+      </article>
       {% endfor %}
 
-      <!-- Pagination -->
       {% if posts.has_next %}
-      <div class="text-center mb-4">
-        <a href="?page={{ posts.next_page_number }}" class="btn btn-outline-primary">Load More</a>
+      <div style="text-align:center;padding:20px 0 40px;">
+        <a href="?page={{ posts.next_page_number }}" style="color:var(--ig-primary);font-weight:600;font-size:14px;">Load more</a>
       </div>
       {% endif %}
 
     {% else %}
-    <div class="text-center py-5">
-      <h5>No posts yet</h5>
-      <p class="text-muted">Follow users to see their posts here.</p>
-      <a href="{% url 'explore' %}" class="btn btn-primary">Explore</a>
+    <div style="text-align:center;padding:80px 20px;">
+      <h4 style="font-weight:400;margin-bottom:8px;">No posts yet</h4>
+      <p style="color:var(--ig-text-secondary);margin-bottom:20px;">Follow users to see their posts here.</p>
+      <a href="{% url 'explore' %}" style="color:var(--ig-primary);font-weight:600;">Explore</a>
     </div>
     {% endif %}
   </div>
 
   <!-- Sidebar -->
-  <div class="col-md-4 d-none d-md-block">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <a href="{% url 'profile' %}">
-            <img src="{{ user.profile.image.url }}" alt="{{ user.username }}" class="rounded-circle" style="width: 44px; height: 44px; object-fit: cover;">
-          </a>
-          <div>
-            <a href="{% url 'profile' %}" class="text-decoration-none text-dark"><strong>{{ user.username }}</strong></a>
-          </div>
+  <aside class="feed-sidebar">
+    <div class="sidebar-profile">
+      <div class="sidebar-profile-row">
+        <a href="{% url 'profile' %}">
+          <img src="{{ user.profile.image.url }}" alt="{{ user.username }}">
+        </a>
+        <div class="sp-info">
+          <a href="{% url 'profile' %}" class="sp-username">{{ user.username }}</a>
+          <span class="sp-name">{{ user.profile.bio|truncatewords:5 }}</span>
         </div>
-        {% if suggested_users %}
-        <h6 class="text-muted">Suggestions For You</h6>
-        {% for su in suggested_users %}
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <img src="{{ su.profile.image.url }}" alt="{{ su.username }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
-          <div class="flex-grow-1">
-            <a href="{% url 'user-profile' su.username %}" class="text-decoration-none text-dark small"><strong>{{ su.username }}</strong></a>
-          </div>
-          <a href="{% url 'follow-user' su.username %}" class="btn btn-primary btn-sm">Follow</a>
-        </div>
-        {% endfor %}
-        {% endif %}
+        <a href="{% url 'logout' %}" style="font-size:12px;font-weight:600;color:var(--ig-primary);flex-shrink:0;">Switch</a>
       </div>
     </div>
-  </div>
-</div>
 
+    {% if suggested_users %}
+    <div class="sidebar-suggestions">
+      <div class="sidebar-suggestions-header">
+        <span>Suggestions For You</span>
+        <a href="{% url 'explore' %}">See All</a>
+      </div>
+      {% for su in suggested_users %}
+      <div class="sidebar-suggestion-item">
+        <a href="{% url 'user-profile' su.username %}">
+          <img src="{{ su.profile.image.url }}" alt="{{ su.username }}">
+        </a>
+        <div class="ssi-info">
+          <a href="{% url 'user-profile' su.username %}" class="ssi-username">{{ su.username }}</a>
+          <span class="ssi-sub">Follows you</span>
+        </div>
+        <a href="{% url 'follow-user' su.username %}" class="ssi-follow">Follow</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="sidebar-footer">
+      About &bull; Help &bull; Press &bull; API &bull; Jobs &bull; Privacy &bull; Terms &bull; Locations &bull; Language
+      <br>© 2024 INSTAGRAM CLONE
+    </div>
+  </aside>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.querySelectorAll('.like-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const postId = this.dataset.postId;
-    const icon = this.querySelector('.like-icon');
-    fetch(`/posts/${postId}/like/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
-      .then(r => r.json())
-      .then(data => {
-        icon.innerHTML = data.liked ? '&#10084;&#65039;' : '&#9825;';
-      });
-  });
+function togglePostMenu(btn) {
+  var dropdown = btn.nextElementSibling;
+  var isVisible = dropdown.style.display === 'block';
+  document.querySelectorAll('.ig-dropdown').forEach(function(d) { d.style.display = 'none'; });
+  dropdown.style.display = isVisible ? 'none' : 'block';
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.post-options')) {
+    document.querySelectorAll('.ig-dropdown').forEach(function(d) { d.style.display = 'none'; });
+  }
 });
 
-document.querySelectorAll('.save-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const postId = this.dataset.postId;
-    fetch(`/posts/${postId}/save/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
-      .then(r => r.json())
-      .then(data => {
-        this.querySelector('.save-icon').style.opacity = data.saved ? '1' : '0.5';
-      });
+function likePost(btn, postId) {
+  fetch('/posts/' + postId + '/like/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var icon = btn.querySelector('i');
+    icon.className = data.liked ? 'bi bi-heart-fill text-danger' : 'bi bi-heart';
+    icon.classList.add('heart-animate');
+    setTimeout(function() { icon.classList.remove('heart-animate'); }, 450);
+    var countEl = document.getElementById('likes-count-' + postId);
+    if (countEl) {
+      countEl.textContent = data.likes_count > 0 ? data.likes_count + (data.likes_count === 1 ? ' like' : ' likes') : '';
+    }
   });
-});
+}
+
+function savePost(btn, postId) {
+  fetch('/posts/' + postId + '/save/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var icon = btn.querySelector('i');
+    icon.className = data.saved ? 'bi bi-bookmark-fill' : 'bi bi-bookmark';
+  });
+}
+
+function openStoryViewer(username, avatarUrl, storyIds) {
+  alert('Story viewer coming soon!');
+}
 </script>
 {% endblock %}

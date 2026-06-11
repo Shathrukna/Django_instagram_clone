@@ -1,22 +1,55 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}Edit Profile - Instagram{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8 col-lg-6">
-    <div class="card shadow">
-      <div class="card-body p-4">
-        <h3 class="text-center mb-4">Edit Profile</h3>
-        <form method="POST" enctype="multipart/form-data">
-          {% csrf_token %}
-          {{ user_form|crispy }}
-          {{ profile_form|crispy }}
-          <button type="submit" class="btn btn-primary w-100 mt-3">Update</button>
-        </form>
+<div style="max-width:600px;margin:30px auto;padding:0 16px;">
+  <div class="post-card p-4">
+    <h3 style="text-align:center;font-weight:400;margin-bottom:24px;">Edit Profile</h3>
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if user_form.non_field_errors or profile_form.non_field_errors %}
+        <div class="auth-error mb-3">Please correct the errors below.</div>
+      {% endif %}
+
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+        <img src="{{ user.profile.image.url }}" alt="{{ user.username }}"
+             class="rounded-circle" style="width:64px;height:64px;object-fit:cover;">
+        <div>
+          <strong>{{ user.username }}</strong>
+          <label for="id_image" style="display:block;color:var(--ig-primary);font-weight:600;font-size:14px;cursor:pointer;margin-top:4px;">Change profile photo</label>
+        </div>
       </div>
-    </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;font-weight:600;margin-bottom:4px;display:block;">Username</label>
+        <input type="text" name="username" value="{{ user_form.username.value|default:user.username }}" style="width:100%;height:38px;border:1px solid var(--ig-border);border-radius:4px;padding:8px;font-size:14px;background:var(--ig-bg);" required>
+        {% if user_form.username.errors %}<div class="auth-error mt-1">{{ user_form.username.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;font-weight:600;margin-bottom:4px;display:block;">Email</label>
+        <input type="email" name="email" value="{{ user_form.email.value|default:user.email }}" style="width:100%;height:38px;border:1px solid var(--ig-border);border-radius:4px;padding:8px;font-size:14px;background:var(--ig-bg);" required>
+        {% if user_form.email.errors %}<div class="auth-error mt-1">{{ user_form.email.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;font-weight:600;margin-bottom:4px;display:block;">Bio</label>
+        <textarea name="bio" rows="3" style="width:100%;border:1px solid var(--ig-border);border-radius:4px;padding:8px;font-size:14px;background:var(--ig-bg);resize:vertical;">{{ profile_form.bio.value|default:user.profile.bio }}</textarea>
+        {% if profile_form.bio.errors %}<div class="auth-error mt-1">{{ profile_form.bio.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="font-size:14px;font-weight:600;margin-bottom:4px;display:block;">Website</label>
+        <input type="url" name="website" value="{{ profile_form.website.value|default:user.profile.website }}" style="width:100%;height:38px;border:1px solid var(--ig-border);border-radius:4px;padding:8px;font-size:14px;background:var(--ig-bg);">
+        {% if profile_form.website.errors %}<div class="auth-error mt-1">{{ profile_form.website.errors.0 }}</div>{% endif %}
+      </div>
+
+      <input type="file" name="image" accept="image/*" id="id_image" style="display:none;">
+
+      <button type="submit" style="width:100%;height:32px;background:var(--ig-primary);color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">Submit</button>
+    </form>
   </div>
 </div>
 {% endblock %}
